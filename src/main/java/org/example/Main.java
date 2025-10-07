@@ -1,6 +1,6 @@
 package org.example;
 
-import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+//import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -24,7 +24,7 @@ public final class Main {
      *
      * @param args the input arguments
      */
-    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
+    //@SuppressFBWarnings("PATH_TRAVERSAL_IN")
     public static void main(final String[] args) {
         if (args.length < 2 || !args[0].equals("--data")) {
             System.out.println("Usage: java SimpleReader --data <filename>");
@@ -76,7 +76,15 @@ public final class Main {
                     System.out.println("Select a matching strategy: "
                             + "ALL, ANY, NONE ");
                     scanner.nextLine();
-                    String strategy = scanner.nextLine().trim();
+                    String strategy;
+                    while (true) {
+                        strategy = scanner.nextLine().trim().toUpperCase();
+                        if (strategy.equals("ALL") || strategy.equals("ANY") || strategy.equals("NONE")) {
+                            break;
+                        } else {
+                            System.out.println("Unknown strategy. Please enter ALL, ANY, or NONE.");
+                        }
+                    }
 
                     System.out.println("\n Enter a name or email to "
                             + "search all suitable people.");
@@ -152,7 +160,7 @@ public final class Main {
                             final String strategy, final String[] words) {
         Set<Integer> matchedIndexes = new HashSet<>();
 
-        switch (strategy.toUpperCase()) {
+        switch (strategy) {
             case "ALL":
                 boolean first = true;
                 for (String word : words) {
