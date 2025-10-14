@@ -1,6 +1,6 @@
 package org.example;
 
-//import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
+import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 
 import java.io.BufferedReader;
 import java.io.FileInputStream;
@@ -24,7 +24,7 @@ public final class Main {
      *
      * @param args the input arguments
      */
-    //@SuppressFBWarnings("PATH_TRAVERSAL_IN")
+    @SuppressFBWarnings("PATH_TRAVERSAL_IN")
     public static void main(final String[] args) {
         if (args.length < 2 || !args[0].equals("--data")) {
             System.out.println("Usage: java SimpleReader --data <filename>");
@@ -41,17 +41,18 @@ public final class Main {
                 lines.add(line);
             }
         } catch (IOException e) {
-            System.out.println("Failed to read file. ");
+            System.out.println("Failed to read file. " + e.getMessage());
         }
 
         Scanner scanner = new Scanner(System.in, StandardCharsets.UTF_8);
         int input = -1;
 
         while (input != 0) {
-            System.out.println("=== Menu ===\n"
-                + "1. Search information.\n"
-                + "2. Print all data.\n"
-                + "0. Exit.");
+            System.out.println("""
+                    === Menu ===
+                    1. Search information.
+                    2. Print all data.
+                    0. Exit.""");
             System.out.print(">");
 
             if (scanner.hasNextInt()) {
@@ -76,13 +77,15 @@ public final class Main {
                     System.out.println("Select a matching strategy: "
                             + "ALL, ANY, NONE ");
                     scanner.nextLine();
-                    String strategy;
-                    while (true) {
-                        strategy = scanner.nextLine().trim().toUpperCase();
-                        if (strategy.equals("ALL") || strategy.equals("ANY") || strategy.equals("NONE")) {
-                            break;
-                        } else {
-                            System.out.println("Unknown strategy. Please enter ALL, ANY, or NONE.");
+                    Strategy strategy = null;
+                    while (strategy == null) {
+                        try {
+                            strategy = Strategy.valueOf(
+                                    scanner.nextLine().trim().toUpperCase());
+                        } catch (IllegalArgumentException e) {
+                            System.out.println("Unknown strategy. "
+                                    + "Please enter ALL, ANY, or NONE."
+                                    + e.getMessage());
                         }
                     }
 
@@ -91,30 +94,48 @@ public final class Main {
                     String names = scanner.nextLine().toLowerCase();
                     String[] keywords = names.split("\\s+");
 
-                    Map<String, ArrayList<Integer>> inverted =
+                    Map<String, List<Integer>> inverted =
                             invertedIndex(lines);
                     Set<Integer> results = findingMatches(
                             lines, inverted, strategy, keywords);
 
-                    if (!results.isEmpty()) {
-                        System.out.println();
-                        System.out.println(results.size() + " persons found:");
-                        for (Integer i : results) {
-                            System.out.println(lines.get(i));
-                        }
-                    } else {
-                        System.out.println("No matching people found.");
-                    }
+                    printSearchResults(results, lines);
                     break;
                 case 2:
-                    for (String line : lines) {
-                        System.out.println(line);
-                    }
+                    printData(lines);
                     break;
                 default:
                     break;
             }
             System.out.println();
+        }
+    }
+
+    /***
+     * Method for printing data.
+     * @param lines - the input argument
+     */
+    private static void printData(final List<String> lines) {
+        for (String line : lines) {
+            System.out.println(line);
+        }
+    }
+
+    /**
+     * Method for printing result.
+     * @param results - the input argument
+     * @param lines - the input argument
+     */
+    private static void printSearchResults(final Set<Integer> results,
+                                           final List<String> lines) {
+        if (!results.isEmpty()) {
+            System.out.println();
+            System.out.println(results.size() + " persons found:");
+            for (Integer i : results) {
+                System.out.println(lines.get(i));
+            }
+        } else {
+            System.out.println("No matching people found.");
         }
     }
 
@@ -124,13 +145,13 @@ public final class Main {
      * @param lines the list of lines to index
      * @return a map of word to list of line indices
      */
-    public static Map<String, ArrayList<Integer>> invertedIndex(
+    public static Map<String, List<Integer>> invertedIndex(
             final List<String> lines) {
-        Map<String, ArrayList<Integer>> indexes = new HashMap<>();
+        Map<String, List<Integer>> indexes = new HashMap<>();
 
         for (int i = 0; i < lines.size(); i++) {
             String line = lines.get(i);
-            String[] words = line.split(" ");
+            String[] words = line.split("\\s+");
             for (String word : words) {
                 if (indexes.containsKey(word.toLowerCase())) {
                     indexes.get(word.toLowerCase()).add(i);
@@ -156,15 +177,16 @@ public final class Main {
      */
     public static Set<Integer> findingMatches(final List<String> lines,
                             final Map<String,
-                            ArrayList<Integer>> invertedIndexes,
-                            final String strategy, final String[] words) {
+                            List<Integer>> invertedIndexes,
+                            final Strategy strategy, final String[] words) {
         Set<Integer> matchedIndexes = new HashSet<>();
 
         switch (strategy) {
-            case "ALL":
+            case ALL:
                 boolean first = true;
                 for (String word : words) {
-                    List<Integer> list = invertedIndexes.get(word);
+                    List<Integer> list = invertedIndexes.get(
+                            word.toLowerCase());
                     if (list == null) {
                         return matchedIndexes;
                     }
@@ -176,20 +198,22 @@ public final class Main {
                     }
                 }
                 break;
-            case "ANY":
+            case ANY:
                 for (String word : words) {
-                    List<Integer> list = invertedIndexes.get(word);
+                    List<Integer> list = invertedIndexes.get(
+                            word.toLowerCase());
                     if (list != null) {
                         matchedIndexes.addAll(list);
                     }
                 }
                 break;
-            case "NONE":
+            case NONE:
                 for (int i = 0; i < lines.size(); i++) {
                     matchedIndexes.add(i);
                 }
                 for (String word : words) {
-                    List<Integer> list = invertedIndexes.get(word);
+                    List<Integer> list = invertedIndexes.get(
+                            word.toLowerCase());
                     if (list != null) {
                         matchedIndexes.removeAll(list);
                     }
